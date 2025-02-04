@@ -1,0 +1,19 @@
+Create database if none exists
+
+display database
+
+add entry - Note the time and include two text boxes. If both are filled, allow user to submit
+write the info to the database
+
+delete entry - each entry should have a delete button
+
+edit entry - each entry should be adjustable and the db should be updated when a button is pushed
+
+optional - edit undo to prevent the entry from being updated
+update all button
+
+save each edit in a buffer to send to python script
+
+So. JS frontend. buttons send shit to python script to update db
+
+step 1: database manipulation
