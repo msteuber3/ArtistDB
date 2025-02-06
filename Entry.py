@@ -7,9 +7,10 @@ class Entry:
         self.time = datetime.datetime.now()
 
     def to_sql_insert_query(self):
-        query = f"INSERT INTO artists VALUES ({self.name}, {self.notes}, {self.time.strftime('MM-DD-YYYY')}"
+        time = self.time.strftime('MM-DD-YYYY')
+        query = f"""INSERT INTO artists VALUES ("{self.name}", "{self.notes}", "{time}");"""
         return query
 
     def to_sql_delete_query(self):
-        query = f"DELETE FROM artists WHERE name={self.name}"
+        query = f"""DELETE FROM artists WHERE name='{self.name}'"""
         return query
