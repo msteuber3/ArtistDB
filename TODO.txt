@@ -20,6 +20,23 @@ step 1: database manipulation
 
 
 JS time. 
-1. Display db table
+1. Display db table - Done
+1a. Add entry button - Done
+1b. Add delete button - Done
 2. when clicked, turn cells into text boxes
+2b. Give each entry an index and change them all when a row is deleted
 3. add submit buttons
+
+
+
+
+Bugs: Fix dates 
+
+Todo other:
+Documentation
+Remove rightmost column
+Delete radios should align with table rows
+Make radios look nicer
+clean up table headers
+move table to the right a bit
+clean up add and remove buttons

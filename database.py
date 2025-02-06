@@ -70,6 +70,18 @@ def get_html_table():
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
+@app.route('/editTable', methods=['GET', 'POST'])
+def edit_db_entry():
+    data = request.get_json()
+    originalText = data['Original']
+    newText = data['Edit']
+    dbFile = Path('artists.db')
+    conn = sqlite3.connect(dbFile)
+    query = f"""SELECT REPLACE("{originalText}", "{originalText}", "{newText}") FROM *"""
+    cur = conn.cursor()
+    cur.execute(query)
+    conn.close()
+    return "200"
 
 def main():
     dbFile = Path('artists.db')
