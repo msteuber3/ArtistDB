@@ -7,29 +7,60 @@
 "https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js">
     </script>
 </head>
-<body onload="getTable()">
     <script>
-        function getTable(){
-            fetch('http://127.0.0.1:5000/getTable')
-            .then( response => response.json() )
-            .then( data => document.getElementById('table').innerHTML = data['data'] )
-            .then(data => console.log(data))
-            .catch((error) => console.error(error))
-            $('#table').on('click', 'td', editEntry);
+        
+        function loadStart(){
+            getTable().then(json_data => createTable(json_data));
         }
-    </script>
-    <script>
+
+        async function getTable(){
+            var json_data
+            await fetch('http://127.0.0.1:5000/getTable')
+            .then( response => response.json() )
+            .then( data =>  json_data = data['data'] )
+            .catch((error) => console.error(error))
+            return json_data;
+        }
+
+        function createTable(new_json){
+            for(var artist in new_json){
+                var theArtist = new_json[artist];
+                var newRow = document.getElementById('toListenTable').insertRow();
+                newRow.id = `${new_json[artist]['ind']}`;
+                var name = newRow.insertCell(0);
+                var notes = newRow.insertCell(1);
+                var date = newRow.insertCell(2);
+
+                name.innerHTML = new_json[artist]['name'];
+                name.onclick = editEntry;
+                name.id = 'name';
+                notes.innerHTML = new_json[artist]['notes'];
+                notes.onclick = editEntry;
+                notes.id = 'notes';
+                date.innerHTML = new_json[artist]['date'];
+            }
+        }
         function addEntry(){
-            var tableRef = document.getElementById('table').getElementsByTagName('tbody')[0];
-            var newRow = tableRef.insertRow(tableRef.length);
-            var curDate = new Date();
-            newRow.innerHTML = `<th></th><td><input id="newName" type="text"></input></td><td><input id="newNote" type="text"></input></td><td>${curDate}</td>`;
+            var tableRef = document.getElementById('toListenTable');
+            var newRow = tableRef.insertRow();
+            var newNameCell = newRow.insertCell(0);
+            var newNoteCell = newRow.insertCell(1);
+
+            var newNameIn = document.createElement('input');
+            newNameIn.type = 'text';
+            newNameIn.id = 'newName';
+            newNameCell.appendChild(newNameIn);
+
+            var newNoteIn = document.createElement('input');
+            newNoteIn.type = 'text';
+            newNoteIn.id = 'newNote';
+            newNoteCell.appendChild(newNoteIn);
+
             document.getElementById('addEntry').textContent = "Submit";
             document.getElementById('addEntry').onclick = submitEntry;
             console.log("tried to submit entry");
         }
-    </script>
-    <script>
+
         function submitEntry(){
             var name = document.getElementById('newName').value;
             var note = document.getElementById('newNote').value;
@@ -43,15 +74,19 @@
                     name: name,
                     note: note
                 })
-        })
-            getTable();
+        });
+
+            newTable = [];
+            newTable = getTable();
+            createTable(newTable);
+
             document.getElementById('addEntry').textContent = "Add Entry";
             document.getElementById('addEntry').onclick = addEntry;
 
         }
 
         function startRemove(){
-            let table = document.getElementById('table');
+            let table = document.getElementById('toListenTable');
             let rows = table.getElementsByTagName('tr');
             let buttonContainer = document.getElementById('buttonContainer');
             const delButtons = []
@@ -73,13 +108,13 @@
 
     function submitRemove(){
         let buttonContainer = document.getElementById('buttonContainer');
-        let table = document.getElementById('table');
+        let table = document.getElementById('toListenTable');
         let rows = table.getElementsByTagName('tr');
         buttons = buttonContainer.childNodes;
         const toDelete = [];
         for(var i = 0; i < buttons.length; i++){
             if(buttons[i].checked){
-                toDelete.push(Array.from(rows[i+1].cells).map(cell => cell.textContent));
+                toDelete.push(i+1);
             }
         }
         fetch('http://127.0.0.1:5000/deleteEntries', {
@@ -92,15 +127,16 @@
                 })
         });
         buttonContainer.innerHTML = "";
-        getTable();
-
+     
         document.getElementById('removeEntry').textContent = "Remove Entry";
         document.getElementById('removeEntry').onclick = startRemove;
     }
 
     function editEntry(){
-        if(!this.contains(document.getElementById('editEntryField'))){
+        if(!document.contains(document.getElementById('editEntryField'))){
             let originalText = this.textContent;
+            let index = this.parentElement.id;
+            let col = this.id;
             this.innerHTML = ""
             this.innerHTML = `<td><input id="editEntryField" type="text" value="${originalText}"></input></td>`;
             let buttonContainer = document.getElementById('buttonContainer');
@@ -110,6 +146,7 @@
                 buttonContainer.appendChild(submitEditButton);
                 submitEditButton.onclick = function () {
                     var newText = document.getElementById("editEntryField").value;
+                    
                     console.log(newText);
                     fetch('http://127.0.0.1:5000/editTable', {
                         method: "POST",
@@ -117,25 +154,35 @@
                             "Content-type": "application/json; charset=UTF-8"
                         },
                         body: JSON.stringify({
-                            Original: originalText,
+                            Original: index,
+                            Column: col,
                             Edit: newText
                         })
                 });
                     buttonContainer.innerHTML = "";
-                    getTable();
+
+                    newTable = [];
+                    newTable = getTable();
+                    createTable(newTable);
                 }
             }
         }
     }
-
     </script>
+<body onload=loadStart()>
     <div id='tableOne'>
-    <table id='table'></table>
-    <div id='buttonContainer'></div>
+        <table id='toListenTable'>
+            <tr>
+                <th>Name</th>
+                <th>Notes</th>
+                <th>Entry Date</th>
+            </tr>
+        </table>
+        <div id='buttonContainer'></div>
     </div>
+
     <button id='addEntry' onclick="addEntry()">Add Entry</button>
     <button id='removeEntry' onclick="startRemove()">Remove Entry</button>
-
 
 </body>
 </html> 

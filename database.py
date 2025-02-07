@@ -17,6 +17,7 @@ def Setup():
     cur = conn.cursor()
 
     query = """CREATE TABLE artists (
+            ind int,
             name text,
             notes text,
             date text
@@ -43,9 +44,10 @@ def add_entry_from_remote():
     conn.close()
     return "200"
 
-def remove_entry(db, entry: Entry):
+def remove_entry(db, index):
     cur = db.cursor()
-    cur.execute(entry.to_sql_delete_query())
+    query = (f"""DELETE FROM artists WHERE ind={int(index)}""")
+    cur.execute(query)
     db.commit()
 
 @app.route('/deleteEntries', methods=['GET', 'POST'])
@@ -54,8 +56,20 @@ def delete_entries_from_remote():
     dbFile = Path('artists.db')
     conn = sqlite3.connect(dbFile)
     for delEntry in entries['delete']:
-        toDel = Entry(delEntry[1], delEntry[2])
-        remove_entry(conn, toDel)
+        remove_entry(conn, delEntry)
+
+    cur = conn.cursor()
+    query = f"""SELECT COUNT(*) FROM artists"""
+    cur.execute(query)
+    conn.commit()
+    index = cur.fetchone()[0]
+
+    cur.execute("SELECT rowid FROM artists ORDER BY rowid") 
+    rowids = [row[0] for row in cur.fetchall()]
+
+    query = f"""UPDATE artists SET ind=? WHERE rowid=?"""
+    cur.executemany(query, list(zip(range(1, index + 1), rowids)))
+    conn.commit()
     conn.close()
     return "200"
 
@@ -65,32 +79,31 @@ def get_html_table():
     dbFile = Path('artists.db')
     conn = sqlite3.connect(dbFile)
     df = pd.read_sql("SELECT * FROM artists", conn)
-    htmlTable = df.to_html()
-    response = jsonify({'data' : htmlTable})
+    json_response = df.to_dict(orient='records')
+    response = jsonify({'data' : json_response})
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 @app.route('/editTable', methods=['GET', 'POST'])
 def edit_db_entry():
     data = request.get_json()
-    originalText = data['Original']
+    index = data['Original']
     newText = data['Edit']
+    column = data['Column']
     dbFile = Path('artists.db')
     conn = sqlite3.connect(dbFile)
-    query = f"""SELECT REPLACE("{originalText}", "{originalText}", "{newText}") FROM *"""
+    query = f"""UPDATE artists SET {column}="{newText}" WHERE ind={int(index)}"""
     cur = conn.cursor()
     cur.execute(query)
+    conn.commit()
     conn.close()
     return "200"
 
 def main():
     dbFile = Path('artists.db')
-    if not dbFile.exists():
-        Setup()
-    conn = sqlite3.connect(dbFile)
-    beatles = Entry("The-Beatles", "Good-band")
-    add_entry(conn, beatles)
+    Setup()
 
 
 if __name__ == "__main__":
+ #  main()
     app.run(host="0.0.0.0")
