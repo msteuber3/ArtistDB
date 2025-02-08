@@ -3,175 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="default.css">
-    <script src=
-"https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js">
-    </script>
 </head>
-    <script>
-        
-        function loadStart(){
-            getTable().then(json_data => createTable(json_data));
-        }
 
-        async function getTable(){
-            var json_data
-            await fetch('http://127.0.0.1:5000/getTable')
-            .then( response => response.json() )
-            .then( data =>  json_data = data['data'] )
-            .catch((error) => console.error(error))
-            return json_data;
-        }
+    <script src="/dbSite.js"></script>
 
-        function createTable(new_json){
-            for(var artist in new_json){
-                var theArtist = new_json[artist];
-                var newRow = document.getElementById('toListenTable').insertRow();
-                newRow.id = `${new_json[artist]['ind']}`;
-                var name = newRow.insertCell(0);
-                var notes = newRow.insertCell(1);
-                var date = newRow.insertCell(2);
 
-                name.innerHTML = new_json[artist]['name'];
-                name.onclick = editEntry;
-                name.id = 'name';
-                notes.innerHTML = new_json[artist]['notes'];
-                notes.onclick = editEntry;
-                notes.id = 'notes';
-                date.innerHTML = new_json[artist]['date'];
-            }
-        }
-        function addEntry(){
-            var tableRef = document.getElementById('toListenTable');
-            var newRow = tableRef.insertRow();
-            var newNameCell = newRow.insertCell(0);
-            var newNoteCell = newRow.insertCell(1);
-
-            var newNameIn = document.createElement('input');
-            newNameIn.type = 'text';
-            newNameIn.id = 'newName';
-            newNameCell.appendChild(newNameIn);
-
-            var newNoteIn = document.createElement('input');
-            newNoteIn.type = 'text';
-            newNoteIn.id = 'newNote';
-            newNoteCell.appendChild(newNoteIn);
-
-            document.getElementById('addEntry').textContent = "Submit";
-            document.getElementById('addEntry').onclick = submitEntry;
-            console.log("tried to submit entry");
-        }
-
-        function submitEntry(){
-            var name = document.getElementById('newName').value;
-            var note = document.getElementById('newNote').value;
-            console.log("Submitting entry");
-            fetch('http://127.0.0.1:5000/addEntry', {
-                method: "POST",
-                headers: {
-                    "Content-type": "application/json; charset=UTF-8"
-                },
-                body: JSON.stringify({
-                    name: name,
-                    note: note
-                })
-        });
-
-            newTable = [];
-            newTable = getTable();
-            createTable(newTable);
-
-            document.getElementById('addEntry').textContent = "Add Entry";
-            document.getElementById('addEntry').onclick = addEntry;
-
-        }
-
-        function startRemove(){
-            let table = document.getElementById('toListenTable');
-            let rows = table.getElementsByTagName('tr');
-            let buttonContainer = document.getElementById('buttonContainer');
-            const delButtons = []
-            for (let i = 1; i < rows.length; i++) {
-                let row = rows[i];
-                newButton = document.createElement("INPUT");
-                newButton.setAttribute("type", "radio");
-                newButton.id = i;
-                newButton.onclick = function () {
-                    this.checked = !this.tag;
-                    row.classList.toggle("strikethrough");
-                    this.tag = this.checked;
-                }
-                buttonContainer.appendChild(newButton);
-        }
-            document.getElementById('removeEntry').textContent = "Submit Remove";
-            document.getElementById('removeEntry').onclick = submitRemove;
-    }
-
-    function submitRemove(){
-        let buttonContainer = document.getElementById('buttonContainer');
-        let table = document.getElementById('toListenTable');
-        let rows = table.getElementsByTagName('tr');
-        buttons = buttonContainer.childNodes;
-        const toDelete = [];
-        for(var i = 0; i < buttons.length; i++){
-            if(buttons[i].checked){
-                toDelete.push(i+1);
-            }
-        }
-        fetch('http://127.0.0.1:5000/deleteEntries', {
-                method: "POST",
-                headers: {
-                    "Content-type": "application/json; charset=UTF-8"
-                },
-                body: JSON.stringify({
-                    delete: toDelete
-                })
-        });
-        buttonContainer.innerHTML = "";
-     
-        document.getElementById('removeEntry').textContent = "Remove Entry";
-        document.getElementById('removeEntry').onclick = startRemove;
-    }
-
-    function editEntry(){
-        if(!document.contains(document.getElementById('editEntryField'))){
-            let originalText = this.textContent;
-            let index = this.parentElement.id;
-            let col = this.id;
-            this.innerHTML = ""
-            this.innerHTML = `<td><input id="editEntryField" type="text" value="${originalText}"></input></td>`;
-            let buttonContainer = document.getElementById('buttonContainer');
-            if(buttonContainer.childElementCount == 0){
-                let submitEditButton = document.createElement("button");
-                submitEditButton.innerHTML = "Submit Edit";
-                buttonContainer.appendChild(submitEditButton);
-                submitEditButton.onclick = function () {
-                    var newText = document.getElementById("editEntryField").value;
-                    
-                    console.log(newText);
-                    fetch('http://127.0.0.1:5000/editTable', {
-                        method: "POST",
-                        headers: {
-                            "Content-type": "application/json; charset=UTF-8"
-                        },
-                        body: JSON.stringify({
-                            Original: index,
-                            Column: col,
-                            Edit: newText
-                        })
-                });
-                    buttonContainer.innerHTML = "";
-
-                    newTable = [];
-                    newTable = getTable();
-                    createTable(newTable);
-                }
-            }
-        }
-    }
-    </script>
 <body onload=loadStart()>
     <div id='tableOne'>
-        <table id='toListenTable'>
+        <table id='toListen'>
             <tr>
                 <th>Name</th>
                 <th>Notes</th>
@@ -179,10 +18,25 @@
             </tr>
         </table>
         <div id='buttonContainer'></div>
+
+        <button id='addEntrytoListen' onclick="addEntry('toListen')">Add Entry</button>
+        <button id='removeEntrytoListen' onclick="startRemove('toListen')">Remove Entry</button>
     </div>
 
-    <button id='addEntry' onclick="addEntry()">Add Entry</button>
-    <button id='removeEntry' onclick="startRemove()">Remove Entry</button>
+    <div id='tableTwo'>
+        <table id='listened'>
+            <tr>
+                <th>Name</th>
+                <th>Notes</th>
+                <th>Entry Date</th>
+            </tr>
+        </table>
+        <div id='buttonContainerTwo'></div>
+
+        <button id='addEntrylistened' onclick="addEntry('listened')">Add Entry</button>
+        <button id='removeEntrylistened' onclick="startRemove('listened')">Remove Entry</button>
+    </div>
+    
 
 </body>
 </html> 

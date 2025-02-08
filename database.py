@@ -11,12 +11,25 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+# TODO: Add second table and pass table name as a parameter
+# TODO: Change table name to toListen and listened
+# TODO: Perhaps edit response codes to something better than "200" every time
+
 def Setup():
     conn = sqlite3.connect('artists.db')
 
     cur = conn.cursor()
 
-    query = """CREATE TABLE artists (
+    query = """CREATE TABLE toListen (
+            ind int,
+            name text,
+            notes text,
+            date text
+            )"""
+
+    cur.execute(query)
+
+    query = """CREATE TABLE listened (
             ind int,
             name text,
             notes text,
@@ -37,16 +50,16 @@ def add_entry(db, entry: Entry):
 @app.route('/addEntry', methods=['GET', 'POST'])
 def add_entry_from_remote():
     data = request.get_json()
-    newEntry = Entry(data['name'], data['note'])
+    newEntry = Entry(data['name'], data['note'], data['table'])
     dbFile = Path('artists.db')
     conn = sqlite3.connect(dbFile)
     add_entry(conn, newEntry)
     conn.close()
     return "200"
 
-def remove_entry(db, index):
+def remove_entry(db, index, table):
     cur = db.cursor()
-    query = (f"""DELETE FROM artists WHERE ind={int(index)}""")
+    query = (f"""DELETE FROM {table} WHERE ind={int(index)}""")
     cur.execute(query)
     db.commit()
 
@@ -55,19 +68,20 @@ def delete_entries_from_remote():
     entries = request.get_json()
     dbFile = Path('artists.db')
     conn = sqlite3.connect(dbFile)
+    table = entries['table']
     for delEntry in entries['delete']:
-        remove_entry(conn, delEntry)
+        remove_entry(conn, delEntry, table)
 
     cur = conn.cursor()
-    query = f"""SELECT COUNT(*) FROM artists"""
+    query = f"""SELECT COUNT(*) FROM {table}"""
     cur.execute(query)
     conn.commit()
     index = cur.fetchone()[0]
 
-    cur.execute("SELECT rowid FROM artists ORDER BY rowid") 
+    cur.execute(f"SELECT rowid FROM {table} ORDER BY rowid") 
     rowids = [row[0] for row in cur.fetchall()]
 
-    query = f"""UPDATE artists SET ind=? WHERE rowid=?"""
+    query = f"""UPDATE {table} SET ind=? WHERE rowid=?"""
     cur.executemany(query, list(zip(range(1, index + 1), rowids)))
     conn.commit()
     conn.close()
@@ -78,8 +92,11 @@ def delete_entries_from_remote():
 def get_html_table():
     dbFile = Path('artists.db')
     conn = sqlite3.connect(dbFile)
-    df = pd.read_sql("SELECT * FROM artists", conn)
-    json_response = df.to_dict(orient='records')
+    json_response = {'listened': "", 'toListen': ""}
+    df = pd.read_sql("SELECT * FROM listened", conn)
+    json_response['listened'] = df.to_dict(orient='records')
+    df = pd.read_sql("SELECT * FROM toListen", conn)
+    json_response['toListen'] = (df.to_dict(orient='records'))
     response = jsonify({'data' : json_response})
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
@@ -91,8 +108,9 @@ def edit_db_entry():
     newText = data['Edit']
     column = data['Column']
     dbFile = Path('artists.db')
+    table = data['table']
     conn = sqlite3.connect(dbFile)
-    query = f"""UPDATE artists SET {column}="{newText}" WHERE ind={int(index)}"""
+    query = f"""UPDATE {table} SET {column}="{newText}" WHERE ind={int(index)}"""
     cur = conn.cursor()
     cur.execute(query)
     conn.commit()
