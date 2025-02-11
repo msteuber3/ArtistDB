@@ -5,11 +5,10 @@
     <link rel="stylesheet" href="default.css">
 </head>
 
-    <script src="/dbSite.js"></script>
+<script src="dbSite.js" defer></script>
 
-
-<body onload=loadStart()>
-    <div id='tableOne'>
+<body class="main-body">
+    <div id='tableOne' class="table-div">
         <table id='toListen'>
             <tr>
                 <th>Name</th>
@@ -17,13 +16,14 @@
                 <th>Entry Date</th>
             </tr>
         </table>
-        <div id='buttonContainer'></div>
-
-        <button id='addEntrytoListen' onclick="addEntry('toListen')">Add Entry</button>
-        <button id='removeEntrytoListen' onclick="startRemove('toListen')">Remove Entry</button>
+        <div id='buttonContainertoListen'></div>
+        <div class="button-container-start">
+            <button id='addEntrytoListen'>Add Entry</button>
+            <button id='removeEntrytoListen'>Remove Entry</button>
+        </div>
     </div>
 
-    <div id='tableTwo'>
+    <div id='tableTwo' class="table-div">
         <table id='listened'>
             <tr>
                 <th>Name</th>
@@ -31,12 +31,14 @@
                 <th>Entry Date</th>
             </tr>
         </table>
-        <div id='buttonContainerTwo'></div>
-
-        <button id='addEntrylistened' onclick="addEntry('listened')">Add Entry</button>
-        <button id='removeEntrylistened' onclick="startRemove('listened')">Remove Entry</button>
+        <div id='buttonContainerlistened'></div>
+        <div class="button-container-start">
+            <button id='addEntrylistened'>Add Entry</button>
+            <button id='removeEntrylistened'>Remove Entry</button>
+        </div>
     </div>
-    
+
 
 </body>
+
 </html> 
