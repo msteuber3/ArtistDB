@@ -160,7 +160,7 @@ function createSwapButton(){
 
     swap.style.position = "absolute";
     swap.style.top = (rect.top + ((rect.height / 2) - 9.5)) + "px"; //9.5 is my best guess
-    swap.style.left = (rect.width + 50) + "px";
+    swap.style.left = (rect.width + 40) + "px";
 
     swap.id = 'swapButton';
     this.parentElement.parentElement.parentElement.appendChild(swap);
@@ -169,9 +169,9 @@ function createSwapButton(){
     var toDelete = [index];
     var name = this.cells[0].innerHTML;
     var notes = this.cells[1].innerHTML;
-    swap.onclick = function(){
+    swap.onclick = async function(){
 
-        fetch('http://127.0.0.1:5000/addEntry', {
+        await fetch('http://127.0.0.1:5000/addEntry', {
             method: "POST",
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
@@ -183,7 +183,7 @@ function createSwapButton(){
             })
         });
         
-        fetch('http://127.0.0.1:5000/deleteEntries', {
+        await fetch('http://127.0.0.1:5000/deleteEntries', {
             method: "POST",
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
@@ -193,10 +193,10 @@ function createSwapButton(){
                 delete: toDelete
             })
     });
-  //  let newTable = [];
-  //  getTable().then((newTab) => newTable = newTab);
-  //  createTable('listened', newTable);
-  //  createTable('toListen', newTable);
+    let newTable = [];
+    getTable().then((newTab) => newTable = newTab);
+    createTable('listened', newTable);
+    createTable('toListen', newTable);
 
 }
 }
@@ -218,12 +218,16 @@ function addEntry(entryTable){ // TODO: cancel button
     var newNameIn = document.createElement('input');
     newNameIn.type = 'text';
     newNameIn.id = 'newName';
+    newNameIn.addEventListener('input', () => validateEntry('addEntry' + entryTable));
     newNameCell.appendChild(newNameIn);
+    validateEntry('addEntry' + entryTable);
 
     var newNoteIn = document.createElement('input');
     newNoteIn.type = 'text';
     newNoteIn.id = 'newNote';
+    newNoteIn.addEventListener('input', () => validateEntry('addEntry' + entryTable));
     newNoteCell.appendChild(newNoteIn);
+    validateEntry('addEntry' + entryTable);
 
     var cancelButton = document.createElement('button');
     cancelButton.innerHTML = "Cancel";
@@ -255,9 +259,9 @@ function submitCancelEnter(entryTable, table, row){
 * Description: 
 */
 
-async function submitEntry(table, event){ //TODO: Pass the values in as parameters
-    var name = document.getElementById('newName').value;
-    var note = document.getElementById('newNote').value;
+async function submitEntry(table){ //TODO: Pass the values in as parameters
+    var name = htmlSanitize(document.getElementById('newName').value);
+    var note = htmlSanitize(document.getElementById('newNote').value);
     console.log("Submitting entry");
     fetch('http://127.0.0.1:5000/addEntry', {      // Note for future Michael: the VS Live server plugin forces a page reload on each fetch call. 
         method: "POST",
@@ -269,16 +273,57 @@ async function submitEntry(table, event){ //TODO: Pass the values in as paramete
             name: name,
             note: note
         })
-});
+}).then(response => response.json())
+  .then(json_data => { if(json_data['response'] == '400'){ handleDuplicate(json_data, table) }});
 
     newTable = [];
     getTable().then((newTab) => newTable = newTab); //TODO: Standardize
     createTable(table, newTable);
 
     document.getElementById('addEntry' + table).textContent = "Add Entry";
-    document.getElementById('addEntry' + table).onclick = function () { addEntry(table) }; //TODO: Get rid of this mayhaps
+    document.getElementById('addEntry' + table).onclick = function () { addEntry(table) }; 
     document.getElementById('cancel').remove();
     document.dispatchEvent(reopenTable);
+}
+
+function handleDuplicate(input, entryTable){
+    if(confirm(input['message'] + " Append new note to old entry?")){
+        fetch('http://127.0.0.1:5000/editTable', {    
+            method: "POST",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            },
+            body: JSON.stringify({
+                table: entryTable,
+                Original: input['data']['old'][entryTable]['ind'][0],
+                Column: 'notes',
+                Edit: input['data']['old'][entryTable]['notes'][0] + '\n' + input['data']['new'][entryTable]['notes']
+                
+            })
+    });
+}
+}
+
+function validateEntry(button){
+    if(document.getElementById('newName').value == "" || document.getElementById('newNote').value == ""){
+        document.getElementById(button).disabled = true;
+    }
+    else{
+        document.getElementById(button).disabled = false;
+    }
+}
+
+function htmlSanitize(input){
+    var htmlMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        "/": '&#x2F;',
+    };
+    var regEsc = /[&<>"'/]/ig;
+    return input.replace(regEsc, (match)=>(map[match]));
 }
 
 /*
@@ -303,7 +348,8 @@ function startRemove(entryTable){
 
         newButton.style.position = "absolute";
         newButton.style.top = (rect.top + ((rect.height / 2) - 7)) + "px";
-        newButton.style.left = (rect.width + 35) + "px";
+        let widthVal = (entryTable == 'listened' ? 210 : 35);
+        newButton.style.left = (rect.width + widthVal) + "px";
 
         newButton.onclick = function () {
             this.checked = !this.tag;
@@ -411,9 +457,9 @@ if(!document.contains(document.getElementById('editEntryField'))){
             buttonContainer.innerHTML = "";
             document.dispatchEvent(reopenTable);
 
- //           var newTable = [];
- //           newTable = getTable();
- //           createTable(table, newTable); 
+            var newTable = [];
+            newTable = getTable();
+            createTable(table, newTable); 
                 
             //TODO: Standardize this thing
         }

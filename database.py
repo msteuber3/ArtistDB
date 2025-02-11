@@ -50,12 +50,17 @@ def add_entry(db, entry: Entry):
 @app.route('/addEntry', methods=['GET', 'POST'])
 def add_entry_from_remote():
     data = request.get_json()
-    newEntry = Entry(data['name'], data['note'], data['table'])
-    dbFile = Path('artists.db')
-    conn = sqlite3.connect(dbFile)
-    add_entry(conn, newEntry)
-    conn.close()
-    return "200"
+    dupes = check_duplicates(data)
+    if dupes != "200":
+        dupes.headers.add("response", "400")
+        return dupes
+    else: 
+        newEntry = Entry(data['name'], data['note'], data['table'])
+        dbFile = Path('artists.db')
+        conn = sqlite3.connect(dbFile)
+        add_entry(conn, newEntry)
+        conn.close()
+        return "200"
 
 def remove_entry(db, index, table):
     cur = db.cursor()
@@ -116,6 +121,22 @@ def edit_db_entry():
     conn.commit()
     conn.close()
     return "200"
+
+def check_duplicates(input):
+    conn = sqlite3.connect('artists.db')
+    cur = conn.cursor()
+    query = f"""SELECT name, ind, notes, date FROM {input['table']} WHERE LOWER(name) LIKE LOWER('{input['name']}')"""
+    cur.execute(query)
+    df = pd.read_sql(query, conn)
+    if not df.empty:
+        data = {'old': {input['table'] : "" }, 'new':""}
+        data['new'] = { input['table']: {'name': input['name'], 'notes': input['note']}}
+        data['old'][input['table']] = df.to_dict(orient='list')
+        print(data)
+        json_message = jsonify({ 'response':"400", 'data': data, 'message':f"Duplicate data detected: input name matches {data['old'][input['table']]['name']} from {data['old'][input['table']]['date']} (index: {data['old'][input['table']]['ind']})"})
+        return json_message
+    else:
+        return "200"
 
 def main():
     dbFile = Path('artists.db')

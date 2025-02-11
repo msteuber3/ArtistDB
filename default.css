@@ -37,6 +37,7 @@ th {
   }
 
 table{
+    position: static;
     width: 100%;
     table-layout: fixed;
     align-self: center;
