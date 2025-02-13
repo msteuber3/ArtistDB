@@ -3,6 +3,7 @@ const reopenTable = new CustomEvent("reopenLockedTable");
 document.addEventListener("lockTable", lockDownTable);
 document.addEventListener("reopenLockedTable", reopenLockedTable);
 
+const flaskServer = "http://127.0.0.1:5000";
 
 window.addEventListener("load", loadStart); //TODO: Look more into this, see what the actual best way of handling this is. Is it the onload or this?
 
@@ -88,7 +89,7 @@ async function loadStart(){
 */
 async function getTable(){
     var json_data
-    await fetch('http://127.0.0.1:5000/getTable')
+    await fetch(flaskServer + '/getTable')
     .then( response => response.json() )
     .then( data =>  json_data = data['data'] )
     .catch((error) => console.error(error))
@@ -131,6 +132,7 @@ function createTable(table, new_json){
         notes.id = 'notes';
         date.innerHTML = new_json[table][artist]['date'];
         date.id = 'date';
+        
 
     }
    // updateCss(table);
@@ -154,13 +156,15 @@ function createSwapButton(){
         document.getElementById('swapButton').remove();
     }
     let swap = document.createElement('button');
-    swap.innerHTML = "->";
-
+  //  swap.innerHTML = "<img src='./icons/aphextwin.png' class='aphex-image' style='top:0px; left:0px; width:30px; height:30px;' alt='->'/>";
+    swap.innerHTML = "<b>---></b>"
     let rect = this.getBoundingClientRect();
-
+    swap.style.width = "50px";
+    swap.style.height = "20px";
     swap.style.position = "absolute";
     swap.style.top = (rect.top + ((rect.height / 2) - 9.5)) + "px"; //9.5 is my best guess
     swap.style.left = (rect.width + 40) + "px";
+    swap.classList.add("swap-button");
 
     swap.id = 'swapButton';
     this.parentElement.parentElement.parentElement.appendChild(swap);
@@ -171,7 +175,7 @@ function createSwapButton(){
     var notes = this.cells[1].innerHTML;
     swap.onclick = async function(){
 
-        await fetch('http://127.0.0.1:5000/addEntry', {
+        await fetch(flaskServer + '/addEntry', {
             method: "POST",
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
@@ -183,7 +187,7 @@ function createSwapButton(){
             })
         });
         
-        await fetch('http://127.0.0.1:5000/deleteEntries', {
+        await fetch(flaskServer + '/deleteEntries', {
             method: "POST",
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
@@ -263,7 +267,7 @@ async function submitEntry(table){ //TODO: Pass the values in as parameters
     var name = htmlSanitize(document.getElementById('newName').value);
     var note = htmlSanitize(document.getElementById('newNote').value);
     console.log("Submitting entry");
-    fetch('http://127.0.0.1:5000/addEntry', {      // Note for future Michael: the VS Live server plugin forces a page reload on each fetch call. 
+    fetch(flaskServer + '/addEntry', {      // Note for future Michael: the VS Live server plugin forces a page reload on each fetch call. 
         method: "POST",
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -288,7 +292,7 @@ async function submitEntry(table){ //TODO: Pass the values in as parameters
 
 function handleDuplicate(input, entryTable){
     if(confirm(input['message'] + " Append new note to old entry?")){
-        fetch('http://127.0.0.1:5000/editTable', {    
+        fetch(flaskServer + '/editTable', {    
             method: "POST",
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
@@ -398,7 +402,7 @@ for(var i = 0; i < buttons.length; i++){
         toDelete.push(i+1);
     }
 }
-fetch('http://127.0.0.1:5000/deleteEntries', {
+fetch(flaskServer + '/deleteEntries', {
         method: "POST",
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -442,7 +446,7 @@ if(!document.contains(document.getElementById('editEntryField'))){
             var newText = document.getElementById("editEntryField").value;
             
             console.log(newText);
-            fetch('http://127.0.0.1:5000/editTable', {
+            fetch(flaskServer + '/editTable', {
                 method: "POST",
                 headers: {
                     "Content-type": "application/json; charset=UTF-8"
